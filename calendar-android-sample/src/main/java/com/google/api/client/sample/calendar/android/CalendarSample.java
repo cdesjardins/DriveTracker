@@ -40,6 +40,7 @@ import android.accounts.AuthenticatorException;
 import android.accounts.OperationCanceledException;
 import android.app.Activity;
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.location.Address;
@@ -47,6 +48,8 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 import android.view.View;
@@ -117,6 +120,40 @@ public final class CalendarSample extends Activity
     String myAddress;
     ProgressDialog progressDialog;
     Handler progressHandler;
+    UIHandler uiHandler;
+
+    public static final int DISPLAY_UI_TOAST = 0;
+    public static final int DISPLAY_UI_DIALOG = 1;
+
+    private final class UIHandler extends Handler
+    {
+        public static final int DISPLAY_UI_TOAST = 0;
+        public static final int DISPLAY_UI_DIALOG = 1;
+
+        public UIHandler(Looper looper)
+        {
+            super(looper);
+        }
+
+        @Override
+        public void handleMessage(Message msg)
+        {
+            switch (msg.what)
+            {
+            case UIHandler.DISPLAY_UI_TOAST:
+            {
+                Context context = getApplicationContext();
+                Toast t = Toast.makeText(context, (String) msg.obj,
+                        Toast.LENGTH_LONG);
+                t.show();
+            }
+            case UIHandler.DISPLAY_UI_DIALOG:
+                // TBD
+            default:
+                break;
+            }
+        }
+    }
 
     public class CalendarAndroidRequestInitializer extends
             CalendarRequestInitializer
@@ -177,6 +214,10 @@ public final class CalendarSample extends Activity
         client.setApplicationName("Google-CalendarAndroidSample/1.0");
         setContentView(R.layout.linearlayout);
         addOKButtonListener();
+
+        Thread uiThread = new HandlerThread("UIHandler");
+        uiThread.start();
+        uiHandler = new UIHandler(((HandlerThread) uiThread).getLooper());
     }
 
     private void addOKButtonListener()
@@ -222,12 +263,11 @@ public final class CalendarSample extends Activity
                         }
                     };
                     checkUpdate.start();
+                    Looper.loop();
 
                 } else
                 {
-                    Toast toast = Toast.makeText(getApplicationContext(),
-                            "Kilometers must be filled in", 1000);
-                    toast.show();
+                    handleUIRequest("Kilometers must be filled in");
                 }
             }
         });
@@ -244,17 +284,13 @@ public final class CalendarSample extends Activity
             when.startTime = driveDate;
             event.when = when;
             EventEntry result = client.eventFeed().insert().execute(url, event);
-            Toast toast = Toast.makeText(getApplicationContext(),
-                    "Created entry:" + event.title, 2000);
-            toast.show();
+            handleUIRequest("Created entry");
             CalendarSample.this.finish();
 
         } catch (Exception e)
         {
             Log.e("CJD", "TrackDrive Error: " + e.toString());
-            Toast toast = Toast.makeText(getApplicationContext(), e.toString(),
-                    5000);
-            toast.show();
+            handleUIRequest(e.toString());
         } finally
         {
             progressHandler.sendEmptyMessage(0);
@@ -461,9 +497,7 @@ public final class CalendarSample extends Activity
             handleException(e);
             Log.e("CJD", "Unable to get calendars " + e.toString());
             progressHandler.sendEmptyMessage(0);
-            Toast toast = Toast.makeText(getApplicationContext(),
-                    "Unable to get Driving calendar", 1000);
-            toast.show();
+            handleUIRequest("Unable to get Driving calendar");
         }
     }
 
@@ -516,6 +550,13 @@ public final class CalendarSample extends Activity
         result.getPathParts().add("allcalendars");
         result.getPathParts().add("full");
         return result;
+    }
+
+    protected void handleUIRequest(String message)
+    {
+        Message msg = uiHandler.obtainMessage(UIHandler.DISPLAY_UI_TOAST);
+        msg.obj = message;
+        uiHandler.sendMessage(msg);
     }
 
 }

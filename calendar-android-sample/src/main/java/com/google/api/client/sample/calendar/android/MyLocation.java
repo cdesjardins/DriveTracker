@@ -5,6 +5,7 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.os.Looper;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -16,6 +17,7 @@ public class MyLocation
     LocationResult locationResult;
     boolean gps_enabled = false;
     boolean network_enabled = false;
+    Looper looper;
 
     public boolean getLocation(Context context, LocationResult result)
     {
@@ -48,7 +50,7 @@ public class MyLocation
         {
             return false;
         }
-
+        looper = Looper.myLooper();
         if (gps_enabled)
         {
             lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0,

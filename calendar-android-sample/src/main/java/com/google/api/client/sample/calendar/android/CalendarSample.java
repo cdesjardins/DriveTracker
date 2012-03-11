@@ -39,17 +39,16 @@ import android.accounts.AccountManagerFuture;
 import android.accounts.AuthenticatorException;
 import android.accounts.OperationCanceledException;
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
-import android.view.ContextMenu;
-import android.view.ContextMenu.ContextMenuInfo;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -116,6 +115,8 @@ public final class CalendarSample extends Activity
     DateTime driveDate;
     int nKilometers;
     String myAddress;
+    ProgressDialog progressDialog;
+    Handler progressHandler;
 
     public class CalendarAndroidRequestInitializer extends
             CalendarRequestInitializer
@@ -201,8 +202,26 @@ public final class CalendarSample extends Activity
                     nKilometers = Integer.parseInt(sKilometers);
                     driveDate = new DateTime(date);
                     Log.i("CJD1", "OK Button: " + nKilometers + " " + driveDate);
+                    progressDialog = ProgressDialog.show(CalendarSample.this,
+                            "", "Getting calendar, and GPS", true);
 
-                    getCalendarAccount();
+                    progressHandler = new Handler()
+                    {
+                        @Override
+                        public void handleMessage(Message msg)
+                        {
+                            progressDialog.dismiss();
+                        }
+                    };
+                    Thread checkUpdate = new Thread()
+                    {
+                        @Override
+                        public void run()
+                        {
+                            getCalendarAccount();
+                        }
+                    };
+                    checkUpdate.start();
 
                 } else
                 {
@@ -228,7 +247,6 @@ public final class CalendarSample extends Activity
             Toast toast = Toast.makeText(getApplicationContext(),
                     "Created entry:" + event.title, 2000);
             toast.show();
-
             CalendarSample.this.finish();
 
         } catch (Exception e)
@@ -237,6 +255,9 @@ public final class CalendarSample extends Activity
             Toast toast = Toast.makeText(getApplicationContext(), e.toString(),
                     5000);
             toast.show();
+        } finally
+        {
+            progressHandler.sendEmptyMessage(0);
         }
     }
 
@@ -288,11 +309,13 @@ public final class CalendarSample extends Activity
                 } else
                 {
                     myAddress = "No Address returned!";
+                    progressHandler.sendEmptyMessage(0);
                 }
             } catch (IOException e)
             {
                 e.printStackTrace();
                 myAddress = "Canont get Address!";
+                progressHandler.sendEmptyMessage(0);
             }
         }
     };
@@ -313,7 +336,6 @@ public final class CalendarSample extends Activity
                 accountManager.manager.getAuthToken(account, AUTH_TOKEN_TYPE,
                         true, new AccountManagerCallback<Bundle>()
                         {
-
                             public void run(AccountManagerFuture<Bundle> future)
                             {
                                 try
@@ -402,51 +424,6 @@ public final class CalendarSample extends Activity
         }
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu)
-    {
-        menu.add(0, MENU_ADD, 0, getString(R.string.new_calendar));
-        if (accountManager.getAccounts().length >= 2)
-        {
-            menu.add(0, MENU_ACCOUNTS, 0, getString(R.string.switch_account));
-        }
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item)
-    {
-        switch (item.getItemId())
-        {
-        case MENU_ADD:
-            CalendarUrl url = forOwnCalendarsFeed();
-            CalendarEntry calendar = new CalendarEntry();
-            calendar.title = "Calendar " + new DateTime(new Date());
-            try
-            {
-                client.calendarFeed().insert().execute(url, calendar);
-            } catch (IOException e)
-            {
-                handleException(e);
-            }
-            executeRefreshCalendars();
-            return true;
-        case MENU_ACCOUNTS:
-            chooseAccount();
-            return true;
-        }
-        return false;
-    }
-
-    @Override
-    public void onCreateContextMenu(ContextMenu menu, View v,
-            ContextMenuInfo menuInfo)
-    {
-        super.onCreateContextMenu(menu, v, menuInfo);
-        menu.add(0, CONTEXT_EDIT, 0, getString(R.string.update_title));
-        menu.add(0, CONTEXT_DELETE, 0, getString(R.string.delete));
-    }
-
     void executeRefreshCalendars()
     {
         List<CalendarEntry> calendars = Lists.newArrayList();
@@ -483,6 +460,7 @@ public final class CalendarSample extends Activity
         {
             handleException(e);
             Log.e("CJD", "Unable to get calendars " + e.toString());
+            progressHandler.sendEmptyMessage(0);
             Toast toast = Toast.makeText(getApplicationContext(),
                     "Unable to get Driving calendar", 1000);
             toast.show();
@@ -540,11 +518,4 @@ public final class CalendarSample extends Activity
         return result;
     }
 
-    private static CalendarUrl forOwnCalendarsFeed()
-    {
-        CalendarUrl result = forCalendarMetafeed();
-        result.getPathParts().add("owncalendars");
-        result.getPathParts().add("full");
-        return result;
-    }
 }

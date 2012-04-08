@@ -39,7 +39,6 @@ import android.accounts.AccountManagerFuture;
 import android.accounts.AuthenticatorException;
 import android.accounts.OperationCanceledException;
 import android.app.Activity;
-import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -90,14 +89,6 @@ public final class CalendarSample extends Activity
 
     private static final String TAG = "CalendarSample";
 
-    private static final int MENU_ADD = 0;
-
-    private static final int MENU_ACCOUNTS = 1;
-
-    private static final int CONTEXT_EDIT = 0;
-
-    private static final int CONTEXT_DELETE = 1;
-
     private static final int REQUEST_AUTHENTICATE = 0;
 
     CalendarClient client;
@@ -118,17 +109,11 @@ public final class CalendarSample extends Activity
     DateTime driveDate;
     int nKilometers;
     String myAddress;
-    ProgressDialog progressDialog;
-    Handler progressHandler;
     UIHandler uiHandler;
-
-    public static final int DISPLAY_UI_TOAST = 0;
-    public static final int DISPLAY_UI_DIALOG = 1;
 
     private final class UIHandler extends Handler
     {
         public static final int DISPLAY_UI_TOAST = 0;
-        public static final int DISPLAY_UI_DIALOG = 1;
 
         public UIHandler(Looper looper)
         {
@@ -147,8 +132,7 @@ public final class CalendarSample extends Activity
                         Toast.LENGTH_LONG);
                 t.show();
             }
-            case UIHandler.DISPLAY_UI_DIALOG:
-                // TBD
+                break;
             default:
                 break;
             }
@@ -243,17 +227,7 @@ public final class CalendarSample extends Activity
                     nKilometers = Integer.parseInt(sKilometers);
                     driveDate = new DateTime(date);
                     Log.i("CJD1", "OK Button: " + nKilometers + " " + driveDate);
-                    progressDialog = ProgressDialog.show(CalendarSample.this,
-                            "", "Getting calendar, and GPS", true);
 
-                    progressHandler = new Handler()
-                    {
-                        @Override
-                        public void handleMessage(Message msg)
-                        {
-                            progressDialog.dismiss();
-                        }
-                    };
                     Thread checkUpdate = new Thread()
                     {
                         @Override
@@ -283,17 +257,13 @@ public final class CalendarSample extends Activity
             When when = new When();
             when.startTime = driveDate;
             event.when = when;
-            EventEntry result = client.eventFeed().insert().execute(url, event);
+            client.eventFeed().insert().execute(url, event);
             handleUIRequest("Created entry");
             CalendarSample.this.finish();
-
         } catch (Exception e)
         {
             Log.e("CJD", "TrackDrive Error: " + e.toString());
             handleUIRequest(e.toString());
-        } finally
-        {
-            progressHandler.sendEmptyMessage(0);
         }
     }
 
@@ -345,13 +315,11 @@ public final class CalendarSample extends Activity
                 } else
                 {
                     myAddress = "No Address returned!";
-                    progressHandler.sendEmptyMessage(0);
                 }
             } catch (IOException e)
             {
                 e.printStackTrace();
                 myAddress = "Canont get Address!";
-                progressHandler.sendEmptyMessage(0);
             }
         }
     };
@@ -496,7 +464,6 @@ public final class CalendarSample extends Activity
         {
             handleException(e);
             Log.e("CJD", "Unable to get calendars " + e.toString());
-            progressHandler.sendEmptyMessage(0);
             handleUIRequest("Unable to get Driving calendar");
         }
     }

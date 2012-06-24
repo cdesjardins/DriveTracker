@@ -62,6 +62,7 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -87,7 +88,7 @@ public final class CalendarSample extends Activity
 
     private static final String AUTH_TOKEN_TYPE = "cl";
 
-    private static final String TAG = "CalendarSample";
+    private static final String TAG = "DriveTracker";
 
     private static final int REQUEST_AUTHENTICATE = 0;
 
@@ -98,6 +99,8 @@ public final class CalendarSample extends Activity
     final HttpTransport transport = AndroidHttp.newCompatibleTransport();
 
     String accountName;
+
+    Thread checkUpdate = null;
 
     static final String PREF = TAG;
     static final String PREF_ACCOUNT_NAME = "accountName";
@@ -110,6 +113,7 @@ public final class CalendarSample extends Activity
     int nKilometers;
     String myAddress;
     UIHandler uiHandler;
+    boolean inProgress = false;
 
     private final class UIHandler extends Handler
     {
@@ -133,6 +137,7 @@ public final class CalendarSample extends Activity
                 t.show();
             }
                 break;
+
             default:
                 break;
             }
@@ -206,42 +211,47 @@ public final class CalendarSample extends Activity
 
     private void addOKButtonListener()
     {
-        Button OKButton = (Button) findViewById(R.id.OKButton);
+        final Button OKButton = (Button) findViewById(R.id.OKButton);
         OKButton.setOnClickListener(new OnClickListener()
         {
             // @Override
             public void onClick(View v)
             {
-                Date date = new Date();
-
-                DatePicker datePicker = (DatePicker) findViewById(R.id.datePicker);
-                EditText kilometerEdit = (EditText) findViewById(R.id.kilometerEdit);
-                date.setDate(datePicker.getDayOfMonth());
-                date.setMonth(datePicker.getMonth());
-                date.setYear(datePicker.getYear() - 1900);
-                String sKilometers;
-
-                sKilometers = kilometerEdit.getText().toString();
-                if (sKilometers.length() > 0)
+                if (inProgress == false)
                 {
-                    nKilometers = Integer.parseInt(sKilometers);
-                    driveDate = new DateTime(date);
-                    Log.i("CJD1", "OK Button: " + nKilometers + " " + driveDate);
+                    inProgress = true;
+                    Date date = new Date();
+                    DatePicker datePicker = (DatePicker) findViewById(R.id.datePicker);
+                    EditText kilometerEdit = (EditText) findViewById(R.id.kilometerEdit);
+                    date.setDate(datePicker.getDayOfMonth());
+                    date.setMonth(datePicker.getMonth());
+                    date.setYear(datePicker.getYear() - 1900);
+                    String sKilometers;
 
-                    Thread checkUpdate = new Thread()
+                    sKilometers = kilometerEdit.getText().toString();
+                    if (sKilometers.length() > 0)
                     {
-                        @Override
-                        public void run()
-                        {
-                            getCalendarAccount();
-                        }
-                    };
-                    checkUpdate.start();
-                    Looper.loop();
+                        nKilometers = Integer.parseInt(sKilometers);
+                        driveDate = new DateTime(date, TimeZone.getDefault());
+                        Log.i("CJD1", "OK Button: " + nKilometers + " "
+                                + driveDate);
 
-                } else
-                {
-                    handleUIRequest("Kilometers must be filled in");
+                        checkUpdate = new Thread()
+                        {
+                            @Override
+                            public void run()
+                            {
+                                Looper.prepare();
+                                getCalendarAccount();
+                                Looper.loop();
+                            }
+                        };
+                        checkUpdate.start();
+
+                    } else
+                    {
+                        handleUIRequest("Kilometers must be filled in");
+                    }
                 }
             }
         });
@@ -260,6 +270,13 @@ public final class CalendarSample extends Activity
             client.eventFeed().insert().execute(url, event);
             handleUIRequest("Created entry");
             CalendarSample.this.finish();
+            uiHandler.postDelayed(new Runnable()
+            {
+                public void run()
+                {
+                    uiHandler.getLooper().quit();
+                }
+            }, 5000);
         } catch (Exception e)
         {
             Log.e("CJD", "TrackDrive Error: " + e.toString());
@@ -496,6 +513,7 @@ public final class CalendarSample extends Activity
                 parseException.printStackTrace();
             }
         }
+        inProgress = false;
         Log.e(TAG, e.getMessage(), e);
     }
 
@@ -525,5 +543,4 @@ public final class CalendarSample extends Activity
         msg.obj = message;
         uiHandler.sendMessage(msg);
     }
-
 }

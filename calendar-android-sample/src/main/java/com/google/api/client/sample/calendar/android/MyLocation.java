@@ -17,7 +17,7 @@ public class MyLocation
     LocationResult locationResult;
     boolean gps_enabled = false;
     boolean network_enabled = false;
-    Looper looper;
+    Looper looper = null;
 
     public boolean getLocation(Context context, LocationResult result)
     {
@@ -50,7 +50,7 @@ public class MyLocation
         {
             return false;
         }
-        looper = Looper.myLooper();
+        // looper = Looper.myLooper();
         if (gps_enabled)
         {
             lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0,

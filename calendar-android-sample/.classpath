@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-  <classpathentry kind="src" path="src/main/java" />
-  <classpathentry kind="output" path="bin/classes" />
-  <classpathentry kind="src" path="gen" />
-  <classpathentry kind="con"
-    path="com.android.ide.eclipse.adt.ANDROID_FRAMEWORK" />
-  <classpathentry kind="con"
-    path="org.eclipse.m2e.MAVEN2_CLASSPATH_CONTAINER" />
+	<classpathentry kind="src" path="src/main/java"/>
+	<classpathentry kind="src" path="gen"/>
+	<classpathentry kind="con" path="com.android.ide.eclipse.adt.ANDROID_FRAMEWORK"/>
+	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.LIBRARIES"/>
+	<classpathentry kind="lib" path="/home/chrisd/workspace2/DriveTracker/calendar-android-sample/libs/shared-sample-gdata-1.1.0.jar"/>
+	<classpathentry kind="lib" path="/home/chrisd/workspace2/DriveTracker/calendar-android-sample/libs/google-api-client-extensions-android2-1.6.0-beta.jar"/>
+	<classpathentry kind="output" path="bin/classes"/>
 </classpath>

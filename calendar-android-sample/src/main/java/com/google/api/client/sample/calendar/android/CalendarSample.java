@@ -470,7 +470,7 @@ public final class CalendarSample extends Activity
 
             for (int i = 0; i < numCalendars; i++)
             {
-                if (calendars.get(i).title.compareTo("Driving") == 0)
+                if (calendars.get(i).title.compareTo("DrivingTest") == 0)
                 {
                     driveCalendar = calendars.get(i);
                     getAddress();
